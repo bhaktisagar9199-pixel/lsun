@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+/* Custom transitions and scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Outstanding printing layout styles for verified student diplomas */
+@media print {
+  header, footer, #stats-section, #overview-section, #listings-section-container, #process-form-grid, #explorer-section, #tabs-section, #search-outputs-holder > div:first-child, .sticky, button, select {
+    display: none !important;
+  }
+  body, html {
+    background: white !important;
+    color: black !important;
+  }
+  #printable-diploma-grid {
+    border: 15px double #da9445 !important;
+    padding: 3rem !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1.414/1 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Rich Text Formatting Classes */
+.rich-text-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.25rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.rich-text-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.25rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+.rich-text-content li {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+  display: list-item !important;
+}
+.rich-text-content strong, .rich-text-content b {
+  font-weight: 700 !important;
+}
+.rich-text-content em, .rich-text-content i {
+  font-style: italic !important;
+}
+
+/* Content editable placeholder styling */
+[contenteditable]:empty::before {
+  content: attr(placeholder);
+  color: #94a3b8;
+  display: block;
+  opacity: 0.7;
+}
+
+
+

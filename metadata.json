@@ -1,0 +1,6 @@
+{
+  "name": "LS University CMS",
+  "description": "A luxury modern real-time CMS-driven website for LS University, featuring interactive academics, certifications, dynamic student tracking, and a powerful live-visual admin panel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
