@@ -1440,14 +1440,10 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-[9px] font-mono text-slate-400 uppercase font-bold">Login Password</label>
-                      <input
-                        type="text"
-                        value={u.password || ''}
-                        placeholder="Set Login Password"
-                        onChange={(e) => handleUpdateUserPassword(u.id, e.target.value)}
-                        className="bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-850 focus:outline-none text-[11px] font-mono font-bold w-40"
-                      />
+                      <label className="block text-[9px] font-mono text-slate-400 uppercase font-bold">Auth Password Status</label>
+                      <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-850 rounded-xl text-[10px] font-mono font-bold">
+                        Managed via Supabase Auth
+                      </div>
                     </div>
                   </div>
                 </div>

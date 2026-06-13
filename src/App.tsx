@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig } from './lib/supabase';
 import { CMSDatabaseState, UserProfile } from './types';
-import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight, Landmark, Key } from 'lucide-react';
+import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight } from 'lucide-react';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -35,17 +35,11 @@ export default function App() {
 
   // Authenticated state with tab session memory
   const [authenticatedUser, setAuthenticatedUser] = useState<UserProfile | null>(() => {
-    const savedUserId = sessionStorage.getItem('LS_UNIVERSITY_ADMIN_SESSION_USER_ID');
     const savedUserJson = sessionStorage.getItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON');
     if (savedUserJson) {
       try {
         return JSON.parse(savedUserJson);
       } catch (e) {}
-    }
-    if (savedUserId) {
-      const state = liveDb.getState();
-      const match = state.users.find(u => u.id === savedUserId);
-      if (match) return match;
     }
     return null;
   });
@@ -70,8 +64,7 @@ export default function App() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session && session.user) {
-        const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === session.user.email?.toLowerCase());
-        const loggedUser: UserProfile = matchedUser || {
+        const loggedUser: UserProfile = {
           id: session.user.id,
           email: session.user.email || '',
           role: (session.user.user_metadata?.role as any) || 'Super Admin',
@@ -85,8 +78,7 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session && session.user) {
-        const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === session.user.email?.toLowerCase());
-        const loggedUser: UserProfile = matchedUser || {
+        const loggedUser: UserProfile = {
           id: session.user.id,
           email: session.user.email || '',
           role: (session.user.user_metadata?.role as any) || 'Super Admin',
@@ -103,7 +95,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, [cmsState.users]);
+  }, []);
 
   // Sync Tailwind class for Dark/Light Mode
   useEffect(() => {
@@ -143,22 +135,7 @@ export default function App() {
     setLoginError(null);
 
     if (!supabase) {
-      const emailLower = loginEmail.trim().toLowerCase();
-      const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === emailLower);
-      if (matchedUser) {
-        const loggedUser: UserProfile = {
-          ...matchedUser,
-          fullName: matchedUser.fullName || 'Super Admin Creator'
-        };
-        setAuthenticatedUser(loggedUser);
-        sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_ID', loggedUser.id);
-        sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON', JSON.stringify(loggedUser));
-        setLoginPassword('');
-        setLoginError(null);
-        setIsAdminMode(true);
-      } else {
-        setLoginError('User email not recognized in local offline database. Enter "bhaktisagar9199@gmail.com" to log in locally.');
-      }
+      setLoginError('Supabase is not configured. Please supply parameters or define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your env configuration.');
       return;
     }
 
@@ -174,8 +151,7 @@ export default function App() {
       }
 
       if (data && data.user) {
-        const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === data.user.email?.toLowerCase());
-        const loggedUser: UserProfile = matchedUser || {
+        const loggedUser: UserProfile = {
           id: data.user.id,
           email: data.user.email || '',
           role: (data.user.user_metadata?.role as any) || 'Super Admin',
@@ -192,22 +168,6 @@ export default function App() {
       }
     } catch (err: any) {
       setLoginError(`System error during operator sign-in: ${err?.message || err}`);
-    }
-  };
-
-  const handleLaunchLocalDemo = () => {
-    const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === 'bhaktisagar9199@gmail.com') || cmsState.users[0];
-    if (matchedUser) {
-      const loggedUser: UserProfile = {
-        ...matchedUser,
-        fullName: matchedUser.fullName || 'Super Admin Creator'
-      };
-      setAuthenticatedUser(loggedUser);
-      sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_ID', loggedUser.id);
-      sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON', JSON.stringify(loggedUser));
-      setLoginPassword('');
-      setLoginError(null);
-      setIsAdminMode(true);
     }
   };
 
@@ -247,37 +207,22 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Error Box */}
-              {loginError && (
+              {/* Error Box / Configuration Blocker */}
+              {!supabase ? (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-xs space-y-2 leading-normal">
+                  <div className="font-bold flex items-center gap-1.5 font-sans uppercase tracking-wider text-[10px] text-red-650 dark:text-red-400">
+                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> Supabase Connection Blocked
+                  </div>
+                  <p className="font-light text-slate-650 dark:text-slate-350">
+                    The Supabase credentials are missing or not defined at runtime. Please configure <code className="font-mono bg-red-500/10 px-1 py-0.5 rounded text-red-700 dark:text-red-350">VITE_SUPABASE_URL</code> and <code className="font-mono bg-red-500/10 px-1 py-0.5 rounded text-red-700 dark:text-red-350">VITE_SUPABASE_ANON_KEY</code> to enable CMS authentication.
+                  </p>
+                </div>
+              ) : loginError ? (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>{loginError}</span>
                 </div>
-              )}
-
-              {/* Fallback Banner for Offline Storage CMS Simulator */}
-              {!supabase && (
-                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs space-y-2 text-amber-700 dark:text-amber-300 leading-normal animate-fade-in">
-                  <p className="font-bold flex items-center gap-1.5 font-sans uppercase tracking-wider text-[10px]">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" /> Local CMS Simulator Mode
-                  </p>
-                  <p className="font-light">
-                    No active Supabase configuration detected. We have auto-enabled the <strong>Local Storage CMS Simulator</strong> so you can safely create, update, and manage courses, news, and faculty in your browser state.
-                  </p>
-                  <div className="pt-1 select-none">
-                    <button
-                      type="button"
-                      onClick={handleLaunchLocalDemo}
-                      className="w-full py-2 bg-amber-550 dark:bg-amber-650 hover:opacity-90 text-white font-mono font-bold text-[10px] uppercase tracking-wider rounded-lg transition-opacity cursor-pointer flex items-center justify-center gap-1 shadow-sm"
-                    >
-                      <Key className="w-3.5 h-3.5" /> Initialize Super Admin Session
-                    </button>
-                    <p className="text-[9px] text-amber-600 dark:text-amber-400 text-center font-light mt-1.5 leading-tight">
-                      Credentials: <code className="font-mono bg-amber-500/10 dark:bg-amber-500/20 px-1 py-0.5 rounded text-amber-800 dark:text-amber-200">bhaktisagar9199@gmail.com</code>
-                    </p>
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               {/* Form Section */}
               <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
@@ -288,13 +233,14 @@ export default function App() {
                   <input
                     type="email"
                     required
+                    disabled={!supabase}
                     placeholder="operator@lsu.edu"
                     value={loginEmail}
                     onChange={(e) => {
                       setLoginEmail(e.target.value);
                       setLoginError(null);
                     }}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -305,19 +251,21 @@ export default function App() {
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      required={!!supabase}
-                      placeholder={supabase ? "••••••••••••" : "Any passcode (Offline Simulation)"}
+                      required
+                      disabled={!supabase}
+                      placeholder="••••••••••••"
                       value={loginPassword}
                       onChange={(e) => {
                         setLoginPassword(e.target.value);
                         setLoginError(null);
                       }}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white pl-4 pr-11 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white pl-4 pr-11 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <button
                       type="button"
+                      disabled={!supabase}
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-250 cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-250 cursor-pointer disabled:opacity-50"
                       title={showPassword ? 'Hide passcode' : 'Show passcode'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -328,7 +276,8 @@ export default function App() {
                 <div className="pt-2 space-y-2">
                   <button
                     type="submit"
-                    className="w-full py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-serif font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-99 transition-all"
+                    disabled={!supabase}
+                    className="w-full py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-serif font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-99 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     Authenticate Session <ArrowRight className="w-4 h-4" />
                   </button>

@@ -16,15 +16,6 @@ export function getSupabaseCredentials() {
   const envUrl = supabaseUrl || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const envKey = supabaseAnonKey || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   
-  if (!envUrl || !envKey) {
-    const localUrl = localStorage.getItem('LSU_SUPABASE_URL') || '';
-    const localKey = localStorage.getItem('LSU_SUPABASE_ANON_KEY') || '';
-    return {
-      url: localUrl,
-      anonKey: localKey
-    };
-  }
-  
   return {
     url: envUrl,
     anonKey: envKey
@@ -319,28 +310,9 @@ const DEFAULT_SEO_SETTINGS: SEOSettings = {
 
 // Initial state creator
 const getInitialCMSState = (): CMSDatabaseState => {
-  const localData = localStorage.getItem('LS_UNIVERSITY_CMS_DB');
-  if (localData) {
-    try {
-      const parsed = JSON.parse(localData) as CMSDatabaseState;
-      // Remove any local passwords from users array to ensure security
-      parsed.users = parsed.users.map(u => {
-        const { password, ...rest } = u;
-        return rest;
-      });
-      return parsed;
-    } catch (e) {
-      console.error('Failed to parse LS University database, seeding fresh data.', e);
-    }
-  }
-
   // Seed default data (excluding hardcoded passwords)
   const seedState: CMSDatabaseState = {
-    users: [
-      { id: 'u-1', email: 'bhaktisagar9199@gmail.com', role: 'Super Admin', fullName: 'Super Admin Creator' },
-      { id: 'u-2', email: 'admin@lsu.edu', role: 'Admin', fullName: 'Dean Arthur Pendelton' },
-      { id: 'u-3', email: 'editor@lsu.edu', role: 'Editor', fullName: 'Sarah Jenkins (Admissions)' }
-    ],
+    users: [],
     homepage: DEFAULT_HOMEPAGE_DATA,
     stats: DEFAULT_STATS,
     testimonials: DEFAULT_TESTIMONIALS,
@@ -360,7 +332,6 @@ const getInitialCMSState = (): CMSDatabaseState => {
     seoSettings: DEFAULT_SEO_SETTINGS
   };
 
-  localStorage.setItem('LS_UNIVERSITY_CMS_DB', JSON.stringify(seedState));
   return seedState;
 };
 
@@ -441,7 +412,6 @@ class LiveCMSDatabase {
           ...loadedState
         };
 
-        localStorage.setItem('LS_UNIVERSITY_CMS_DB', JSON.stringify(this.state));
         this.notifyListeners();
         console.log('Successfully loaded all website content in real-time from Supabase database!');
       } else {
@@ -488,7 +458,6 @@ class LiveCMSDatabase {
               [key]: content
             };
 
-            localStorage.setItem('LS_UNIVERSITY_CMS_DB', JSON.stringify(this.state));
             this.notifyListeners();
           }
         }
@@ -500,8 +469,6 @@ class LiveCMSDatabase {
 
   public updateState(newState: Partial<CMSDatabaseState>): void {
     this.state = { ...this.state, ...newState };
-    
-    localStorage.setItem('LS_UNIVERSITY_CMS_DB', JSON.stringify(this.state));
 
     if (realtimeChannel) {
       realtimeChannel.postMessage({
@@ -541,9 +508,6 @@ class LiveCMSDatabase {
 export const liveDb = new LiveCMSDatabase();
 
 export function updateSupabaseConfig(url: string, anonKey: string) {
-  localStorage.setItem('LSU_SUPABASE_URL', url);
-  localStorage.setItem('LSU_SUPABASE_ANON_KEY', anonKey);
-  
   activeUrl = url;
   activeKey = anonKey;
   
