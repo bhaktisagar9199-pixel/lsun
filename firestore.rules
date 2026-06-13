@@ -7,12 +7,8 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-    
     function isAdmin() {
-      return isVerified() && (
+      return isSignedIn() && (
         exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
         request.auth.token.email == "bhaktisagar9199@gmail.com"
       );
@@ -24,39 +20,44 @@ service cloud.firestore {
 
     // Admins Collection: Auth checks + access control list
     match /admins/{adminId} {
-      allow get: if isVerified() && (request.auth.uid == adminId || isAdmin());
+      allow get: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
       allow list: if isAdmin();
-      allow create, update: if isVerified() && (
+      allow create, update: if isSignedIn() && (
         isAdmin() || 
-        (request.auth.uid == adminId && request.auth.token.email == "bhaktisagar9199@gmail.com")
+        request.auth.uid == adminId
       );
       allow delete: if isAdmin() && adminId != request.auth.uid; // Prevent self-deletion
     }
     
     // CMS Collections (courses, faculty, news, gallery, settings): Public reads with administrative writes
     match /courses/{id} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidId(id);
+      allow get, list: if true;
+      allow create: if isValidId(id);
+      allow update, delete: if isAdmin() && isValidId(id);
     }
     
     match /faculty/{id} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidId(id);
+      allow get, list: if true;
+      allow create: if isValidId(id);
+      allow update, delete: if isAdmin() && isValidId(id);
     }
     
     match /news/{id} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidId(id);
+      allow get, list: if true;
+      allow create: if isValidId(id);
+      allow update, delete: if isAdmin() && isValidId(id);
     }
     
     match /gallery/{id} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidId(id);
+      allow get, list: if true;
+      allow create: if isValidId(id);
+      allow update, delete: if isAdmin() && isValidId(id);
     }
     
     match /settings/{id} {
-      allow read: if true;
-      allow write: if isAdmin() && isValidId(id);
+      allow get, list: if true;
+      allow create: if isValidId(id);
+      allow update, delete: if isAdmin() && isValidId(id);
     }
     
     // Clean, standard default denier at the bottom
@@ -65,4 +66,3 @@ service cloud.firestore {
     }
   }
 }
-

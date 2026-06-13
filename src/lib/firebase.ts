@@ -16,7 +16,7 @@ export function getEnv(name: string): any {
 const firebaseConfig = {
   apiKey: appletConfig.apiKey || '',
   authDomain: appletConfig.authDomain || '',
-  projectId: "ls-university",
+  projectId: appletConfig.projectId || 'organic-gamma-m6m9v',
   storageBucket: appletConfig.storageBucket || '',
   messagingSenderId: appletConfig.messagingSenderId || '',
   appId: appletConfig.appId || ''
@@ -33,7 +33,7 @@ const app = initializeApp(
     : {
         apiKey: "placeholder",
         authDomain: "placeholder.firebaseapp.com",
-        projectId: "ls-university",
+        projectId: "organic-gamma-m6m9v",
         storageBucket: "placeholder.appspot.com",
         messagingSenderId: "12345678",
         appId: "1:12345:web:abcd"
@@ -41,9 +41,8 @@ const app = initializeApp(
 );
 
 export const db = getFirestore(app);
-console.log("Connected to Firebase Firestore default database");
+console.log("Using Firebase default Firestore");
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
 
 // Error handling guidelines implementation
 export enum OperationType {

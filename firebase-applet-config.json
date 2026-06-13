@@ -1,9 +1,10 @@
 {
-  "projectId": "ls-university",
+  "projectId": "organic-gamma-m6m9v",
   "appId": "1:767589305266:web:60e5f88c83e630977572ab",
   "apiKey": "AIzaSyBufAur70meGc8qDiPAX9YqP0zwmdpKcLA",
-  "authDomain": "ls-university.firebaseapp.com",
-  "storageBucket": "ls-university.firebasestorage.app",
+  "authDomain": "organic-gamma-m6m9v.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-d9b91f3b-4718-476f-9725-0e173d156d0b",
+  "storageBucket": "organic-gamma-m6m9v.firebasestorage.app",
   "messagingSenderId": "767589305266",
   "measurementId": ""
 }
