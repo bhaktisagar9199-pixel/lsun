@@ -6,13 +6,18 @@
 import { createClient } from '@supabase/supabase-js';
 import { CMSDatabaseState, HomePageData, AboutPageData, Course, FacultyMember, NewsArticle, CampusEvent, GalleryItem, PlacementHighlight, Recruiter, Certificate, ContactDetails, FooterSettings, SEOSettings, UserProfile, UniversityStat, Testimonial, TimelineMilestone, AdmissionsPageData } from '../types';
 
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+console.log('Supabase Loaded URL (Database):', supabaseUrl);
+
 // Supabase configuration
 export function getSupabaseCredentials() {
   const localUrl = localStorage.getItem('LSU_SUPABASE_URL');
   const localKey = localStorage.getItem('LSU_SUPABASE_ANON_KEY');
   
-  const envUrl = ((import.meta as any).env?.VITE_SUPABASE_URL || (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_URL || '');
-  const envKey = ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY || (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
+  const envUrl = supabaseUrl || ((import.meta as any).env?.NEXT_PUBLIC_SUPABASE_URL || '');
+  const envKey = supabaseAnonKey || ((import.meta as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY || '');
   
   return {
     url: localUrl || envUrl || '',

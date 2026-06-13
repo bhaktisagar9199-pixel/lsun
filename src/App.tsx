@@ -8,6 +8,11 @@ import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig } from './
 import { CMSDatabaseState, UserProfile } from './types';
 import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight, Landmark, Key } from 'lucide-react';
 
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+
+console.log('Supabase Loaded URL (Auth Login):', supabaseUrl);
+
 // Importing beautiful modular pages
 import MainHeader from './components/MainHeader';
 import MainFooter from './components/MainFooter';
