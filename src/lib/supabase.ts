@@ -6,15 +6,21 @@
 import { createClient } from '@supabase/supabase-js';
 import { CMSDatabaseState, HomePageData, AboutPageData, Course, FacultyMember, NewsArticle, CampusEvent, GalleryItem, PlacementHighlight, Recruiter, Certificate, ContactDetails, FooterSettings, SEOSettings, UserProfile, UniversityStat, Testimonial, TimelineMilestone, AdmissionsPageData } from '../types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 console.log('Supabase Loaded URL (Database):', supabaseUrl);
+console.log('Supabase Loaded Anon Key Status (Database):', supabaseAnonKey ? 'Available' : 'Missing');
 
 // Supabase configuration
 export function getSupabaseCredentials() {
-  const envUrl = supabaseUrl || import.meta.env.NEXT_PUBLIC_SUPABASE_URL || '';
-  const envKey = supabaseAnonKey || import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  const envUrl = supabaseUrl || '';
+  const envKey = supabaseAnonKey || '';
   
   return {
     url: envUrl,

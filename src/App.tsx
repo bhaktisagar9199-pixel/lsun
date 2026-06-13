@@ -8,10 +8,16 @@ import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig } from './
 import { CMSDatabaseState, UserProfile } from './types';
 import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight } from 'lucide-react';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 console.log('Supabase Loaded URL (Auth Login):', supabaseUrl);
+console.log('Supabase Loaded Anon Key Status:', supabaseAnonKey ? 'Available' : 'Missing');
 
 // Importing beautiful modular pages
 import MainHeader from './components/MainHeader';
