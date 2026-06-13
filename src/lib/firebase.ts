@@ -3,52 +3,95 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { createClient } from '@supabase/supabase-js';
-import { CMSDatabaseState, HomePageData, AboutPageData, Course, FacultyMember, NewsArticle, CampusEvent, GalleryItem, PlacementHighlight, Recruiter, Certificate, ContactDetails, FooterSettings, SEOSettings, UserProfile, UniversityStat, Testimonial, TimelineMilestone, AdmissionsPageData } from '../types';
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore, collection, doc, getDocs, setDoc, onSnapshot } from 'firebase/firestore';
+import { CMSDatabaseState, HomePageData, AboutPageData, Course, FacultyMember, NewsArticle, CampusEvent, GalleryItem, PlacementHighlight, Recruiter, Certificate, ContactDetails, FooterSettings, SEOSettings, UniversityStat, Testimonial, TimelineMilestone, AdmissionsPageData } from '../types';
+import appletConfig from '../../firebase-applet-config.json';
 
 export function getEnv(name: string): any {
   return import.meta.env[name];
 }
 
-console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
-console.log("VITE_SUPABASE_ANON_KEY =", !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || getEnv('VITE_FIREBASE_API_KEY') || appletConfig.apiKey || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || getEnv('VITE_FIREBASE_AUTH_DOMAIN') || appletConfig.authDomain || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || getEnv('VITE_FIREBASE_PROJECT_ID') || appletConfig.projectId || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || getEnv('VITE_FIREBASE_STORAGE_BUCKET') || appletConfig.storageBucket || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || appletConfig.messagingSenderId || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || getEnv('VITE_FIREBASE_APP_ID') || appletConfig.appId || '',
+  firestoreDatabaseId: appletConfig.firestoreDatabaseId || ''
+};
 
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  getEnv('VITE_SUPABASE_URL') ||
-  getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
-  '';
+console.log("Firebase config loaded. Project ID:", firebaseConfig.projectId);
 
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  getEnv('VITE_SUPABASE_ANON_KEY') ||
-  getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') ||
-  '';
+export const isFirebaseConfigured = !!firebaseConfig.apiKey;
 
-console.log('Supabase Loaded URL (Database):', supabaseUrl);
-console.log('Supabase Loaded Anon Key Status (Database):', supabaseAnonKey ? 'Available' : 'Missing');
+// Initialize Firebase
+const app = initializeApp(
+  isFirebaseConfigured
+    ? firebaseConfig
+    : {
+        apiKey: "placeholder",
+        authDomain: "placeholder.firebaseapp.com",
+        projectId: "placeholder-project",
+        storageBucket: "placeholder.appspot.com",
+        messagingSenderId: "12345678",
+        appId: "1:12345:web:abcd"
+      }
+);
 
-// Supabase configuration
-export function getSupabaseCredentials() {
-  const envUrl = supabaseUrl || '';
-  const envKey = supabaseAnonKey || '';
-  
-  return {
-    url: envUrl,
-    anonKey: envKey
-  };
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+
+// Error handling guidelines implementation
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
 }
 
-let { url: activeUrl, anonKey: activeKey } = getSupabaseCredentials();
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
 
-export const isSupabaseConfigured = activeUrl !== '' && activeKey !== '';
-
-export let supabase = createClient(
-  activeUrl || 'https://placeholder-please-configure.supabase.co',
-  activeKey || 'placeholder'
-);
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 // Premium initial seed data for LS University
 const DEFAULT_HOMEPAGE_DATA: HomePageData = {
@@ -328,11 +371,9 @@ const DEFAULT_SEO_SETTINGS: SEOSettings = {
   schemaMarkup: '{\n  "@context": "https://schema.org",\n  "@type": "CollegeOrUniversity",\n  "name": "LS University",\n  "url": "https://lsu.edu"\n}'
 };
 
-// Initial state creator
 const getInitialCMSState = (): CMSDatabaseState => {
-  // Seed default data (excluding hardcoded passwords)
-  const seedState: CMSDatabaseState = {
-    users: [],
+  return {
+    users: [], // Keep standard array for administrative userProfiles
     homepage: DEFAULT_HOMEPAGE_DATA,
     stats: DEFAULT_STATS,
     testimonials: DEFAULT_TESTIMONIALS,
@@ -351,20 +392,15 @@ const getInitialCMSState = (): CMSDatabaseState => {
     footerSettings: DEFAULT_FOOTER_SETTINGS,
     seoSettings: DEFAULT_SEO_SETTINGS
   };
-
-  return seedState;
 };
 
-// Set up Broadcast Channel for real-time live synchronization across browser windows/tabs!
-// This satisfies the real-time CMS requirement instantly inside the sandbox environment.
 const REALTIME_CHANNEL_NAME = 'LS_UNIVERSITY_CMS_REALTIME';
 const realtimeChannel = typeof window !== 'undefined' ? new BroadcastChannel(REALTIME_CHANNEL_NAME) : null;
 
-// Simulated store with listeners
 class LiveCMSDatabase {
   private state: CMSDatabaseState;
   private listeners: Set<(state: CMSDatabaseState) => void> = new Set();
-  private realtimeChannelInstance: any = null;
+  private unsubscribeFirestore: (() => void) | null = null;
 
   constructor() {
     this.state = getInitialCMSState();
@@ -378,113 +414,77 @@ class LiveCMSDatabase {
       };
     }
 
-    // Attempt background Supabase retrieval on startup
-    this.reinitializeSupabase();
+    if (isFirebaseConfigured) {
+      this.reinitializeFirebase();
+    } else {
+      console.warn('Firebase details not yet defined. Utilizing responsive local environment until configured.');
+    }
   }
 
   public getState(): CMSDatabaseState {
     return this.state;
   }
 
-  public async reinitializeSupabase() {
-    if (this.realtimeChannelInstance) {
+  public reinitializeFirebase() {
+    if (this.unsubscribeFirestore) {
       try {
-        this.realtimeChannelInstance.unsubscribe();
+        this.unsubscribeFirestore();
       } catch (e) {}
-      this.realtimeChannelInstance = null;
-    }
-
-    if (!supabase) {
-      console.log('Supabase client is not yet configured or is inactive.');
-      return;
+      this.unsubscribeFirestore = null;
     }
 
     try {
-      console.log('Synchronizing with active Supabase server endpoint...');
-      await this.fetchFromSupabase();
+      console.log('Connecting and synchronizing in real-time with Firestore service containers...');
       this.setupRealtimeSubscription();
     } catch (e) {
-      console.error('Failed to sync with Supabase services:', e);
-    }
-  }
-
-  public async fetchFromSupabase() {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase
-        .from('university_cms_content')
-        .select('*');
-
-      if (error) {
-        console.warn('Could not retrieve payload from university_cms_content table. Ensure database schema is created.', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const loadedState: Partial<CMSDatabaseState> = {};
-        data.forEach((row: any) => {
-          const key = row.id as keyof CMSDatabaseState;
-          loadedState[key] = row.content;
-        });
-
-        this.state = {
-          ...this.state,
-          ...loadedState
-        };
-
-        this.notifyListeners();
-        console.log('Successfully loaded all website content in real-time from Supabase database!');
-      } else {
-        console.log('Supabase tables are pristine. Triggering auto-seeding protocols...');
-        await this.seedAllToSupabase();
-      }
-    } catch(err) {
-      console.error('Error fetching university content from Supabase:', err);
-    }
-  }
-
-  public async seedAllToSupabase() {
-    if (!supabase) return;
-    try {
-      const keys = Object.keys(this.state) as Array<keyof CMSDatabaseState>;
-      for (const key of keys) {
-        const value = this.state[key];
-        await supabase
-          .from('university_cms_content')
-          .upsert({ id: key, content: value });
-      }
-      console.log('Dynamic auto-seeding completed. Initial demo content pushed to Supabase!');
-    } catch (e) {
-      console.warn('Dynamic seeding failed to resolve:', e);
+      console.error('Failed to configure Firestore listeners:', e);
     }
   }
 
   private setupRealtimeSubscription() {
-    if (!supabase) return;
+    const colRef = collection(db, 'cms_content');
+    
+    this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+      if (snapshot.empty) {
+        console.log('Firestore cms_content is empty. Seeding initial data models... It is expected for first-time use.');
+        this.seedAllToFirestore();
+        return;
+      }
 
-    this.realtimeChannelInstance = supabase
-      .channel('public:university_cms_content')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'university_cms_content' },
-        (payload: any) => {
-          console.log('Supabase Realtime Broadcast caught change:', payload);
-          if (payload.new && payload.new.id) {
-            const key = payload.new.id as keyof CMSDatabaseState;
-            const content = payload.new.content;
-            
-            this.state = {
-              ...this.state,
-              [key]: content
-            };
-
-            this.notifyListeners();
-          }
+      const loadedState: Partial<CMSDatabaseState> = {};
+      snapshot.forEach((docSnap) => {
+        const key = docSnap.id as keyof CMSDatabaseState;
+        const rawData = docSnap.data();
+        if (rawData && rawData.content) {
+          loadedState[key] = rawData.content;
         }
-      )
-      .subscribe((status) => {
-        console.log('Supabase Realtime Subscription handle:', status);
       });
+
+      this.state = {
+        ...this.state,
+        ...loadedState
+      };
+
+      this.notifyListeners();
+      console.log('Synchronized state dynamically with Firestore in real-time!');
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'cms_content');
+    });
+  }
+
+  public async seedAllToFirestore() {
+    if (!isFirebaseConfigured) return;
+    try {
+      const keys = Object.keys(this.state) as Array<keyof CMSDatabaseState>;
+      for (const key of keys) {
+        if (key === 'users') continue; // Do not seed dummy users to public configs
+        const value = this.state[key];
+        await setDoc(doc(db, 'cms_content', key), { content: value });
+      }
+      console.log('Firestore university CMS records initialized successfully!');
+    } catch (e) {
+      console.error('Dynamic Firestore auto-seeding aborted:', e);
+    }
   }
 
   public updateState(newState: Partial<CMSDatabaseState>): void {
@@ -499,14 +499,14 @@ class LiveCMSDatabase {
 
     this.notifyListeners();
 
-    if (supabase) {
+    if (isFirebaseConfigured) {
       Object.entries(newState).forEach(async ([key, val]) => {
+        if (key === 'users') return; // Local profile references
         try {
-          await supabase!
-            .from('university_cms_content')
-            .upsert({ id: key, content: val });
+          await setDoc(doc(db, 'cms_content', key), { content: val });
         } catch (e) {
-          console.warn(`Failed to push key ${key} to Supabase:`, e);
+          console.error(`Failed to sync CMS component ${key} to Firestore:`, e);
+          handleFirestoreError(e, OperationType.WRITE, `cms_content/${key}`);
         }
       });
     }
@@ -526,15 +526,3 @@ class LiveCMSDatabase {
 }
 
 export const liveDb = new LiveCMSDatabase();
-
-export function updateSupabaseConfig(url: string, anonKey: string) {
-  activeUrl = url;
-  activeKey = anonKey;
-  
-  if (url && anonKey) {
-    supabase = createClient(url, anonKey);
-    liveDb.reinitializeSupabase();
-  } else {
-    supabase = null;
-  }
-}

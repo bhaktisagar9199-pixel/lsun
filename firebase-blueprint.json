@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "CMSContent": {
+      "title": "CMS Content Document",
+      "description": "Represents a single key-value segment of the CMS database state.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique key matching the CMS database state field name."
+        },
+        "content": {
+          "type": "object",
+          "description": "The raw JSON or list data content for this particular CMS segment."
+        }
+      },
+      "required": ["id", "content"]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "An administrative user who has write access to the CMS.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The email of the administrative user."
+        },
+        "role": {
+          "type": "string",
+          "description": "The role, e.g., Super Admin."
+        }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/cms_content/{contentId}": {
+      "schema": "CMSContent",
+      "description": "Dynamic web page and university settings cache."
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Users authorized to log in to the admin panel."
+    }
+  }
+}

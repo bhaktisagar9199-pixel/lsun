@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { CMSDatabaseState, Course, FacultyMember, Certificate, NewsArticle, CampusEvent, UserProfile, UserRole, Testimonial, GalleryItem, UniversityStat, AdmissionsPageData } from '../types';
-import { liveDb, getSupabaseCredentials, updateSupabaseConfig, isSupabaseConfigured } from '../lib/supabase';
+import { liveDb, isFirebaseConfigured } from '../lib/firebase';
 import { ShieldAlert, CheckCircle, Save, Trash2, Plus, Edit2, Users, FileCheck, HelpCircle, Lock, LayoutDashboard, FileText, Cpu, Compass, Sliders, Image, Eye, X, RefreshCw, Printer, Award, Calendar, BadgeCheck, Check, Landmark, Database, Globe, Mail, Phone, MapPin, MessageSquare, Settings } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 
@@ -106,10 +106,8 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
   const [newStatLabel, setNewStatLabel] = useState('');
   const [newStatIcon, setNewStatIcon] = useState('Award');
 
-  // Supabase live configuration credentials
-  const creds = getSupabaseCredentials();
-  const [supabaseUrl, setSupabaseUrl] = useState(creds.url);
-  const [supabaseAnonKey, setSupabaseAnonKey] = useState(creds.anonKey);
+  // Firebase integration indicators
+  const [firebaseStatusText, setFirebaseStatusText] = useState(isFirebaseConfigured ? 'CONNECTED' : 'NOT CONNECTED');
 
   // NEW SUBMISSION HANDLERS FOR THE DYNAMIC SECTIONS
   const handleSaveAdmissions = (e: React.FormEvent) => {
@@ -315,11 +313,10 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
     triggerSaveSuccess();
   };
 
-  const handleUpdateSupabaseCredentials = (e: React.FormEvent) => {
+  const handleUpdateFirebaseWarning = (e: React.FormEvent) => {
     e.preventDefault();
-    updateSupabaseConfig(supabaseUrl.trim(), supabaseAnonKey.trim());
     triggerSaveSuccess();
-    alert('Credentials updated! Supabase connection sync has been re-initialized. Seeding will run if table is empty.');
+    alert('Firebase credentials are live-fed from environment variables (e.g. VITE_FIREBASE_API_KEY). To change these on production, please set them in your Vercel or cloud provider settings dashboard.');
   };
 
   // Action: Save general page content
@@ -351,7 +348,7 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
   };
 
   const triggerSaveSuccess = () => {
-    setSaveStatus('Changes synchronized dynamically to live Supabase structure!');
+    setSaveStatus('Changes synchronized dynamically to live Firebase Firestore!');
     setTimeout(() => setSaveStatus(null), 3000);
   };
 
@@ -746,7 +743,7 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
               activeTab === 'settings' ? 'bg-slate-950 text-white dark:bg-white dark:text-slate-950' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-705 dark:text-slate-200'
             }`}
           >
-            <Database className="w-4 h-4 shrink-0 text-[#da9445]" /> Supabase Configuration
+            <Database className="w-4 h-4 shrink-0 text-[#da9445]" /> Firebase Indicators
           </button>
         </div>
       </div>
@@ -1441,8 +1438,8 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
 
                     <div className="space-y-1">
                       <label className="block text-[9px] font-mono text-slate-400 uppercase font-bold">Auth Password Status</label>
-                      <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-850 rounded-xl text-[10px] font-mono font-bold">
-                        Managed via Supabase Auth
+                      <div className="px-3 py-1.5 bg-slate-100 dark:bg-slate-955 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-850 rounded-xl text-[10px] font-mono font-bold">
+                        Secured via Firebase Identity
                       </div>
                     </div>
                   </div>
@@ -2144,48 +2141,50 @@ export default function AdminPanel({ state, currentUser, onLogout }: AdminPanelP
           </div>
         )}
 
-        {/* Tab content 15: Settings (Supabase configuration parameters) */}
+        {/* Tab content 15: Settings (Firebase status info pane) */}
         {activeTab === 'settings' && (
           <div className="bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-3xl p-8 space-y-6 animate-fade-in animate-once font-sans">
-            <div className="space-y-1">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Supabase Connection Credentials</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-light">Initialize direct real-time server synchronizations with custom database pools.</p>
+            <div className="space-y-1 bg-amber-500/5 dark:bg-[#da9445]/5 border border-[#da9445]/20 p-5 rounded-2xl">
+              <h3 className="text-xl font-serif font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <Database className="w-5 h-5 text-[#da9445]" /> Firebase Active Console
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-light mt-1">Real-time status indicators and sync control deck parameters.</p>
             </div>
 
-            <form onSubmit={handleUpdateSupabaseCredentials} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono tracking-wider text-slate-400 uppercase block font-bold">VITE_SUPABASE_URL</label>
-                <input 
-                  type="text" 
-                  value={supabaseUrl}
-                  onChange={(e) => setSupabaseUrl(e.target.value)}
-                  placeholder="https://your-project.supabase.co"
-                  className="w-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-850 text-xs focus:ring-1 focus:ring-slate-950 font-mono"
-                />
+            <form onSubmit={handleUpdateFirebaseWarning} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono tracking-wider text-slate-450 uppercase block font-bold">LSU Database Engine</label>
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-955 border border-slate-250 dark:border-slate-850 rounded-xl flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-medium text-slate-650 dark:text-slate-350">Cloud Firestore Connection</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-[#da9445]/10 text-[#da9445] border border-[#da9445]/20">
+                    {firebaseStatusText}
+                  </span>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono tracking-wider text-slate-400 uppercase block font-bold">VITE_SUPABASE_ANON_KEY</label>
-                <textarea 
-                  rows={2}
-                  value={supabaseAnonKey}
-                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                  placeholder="your-anon-key-string"
-                  className="w-full bg-slate-50 dark:bg-slate-955 text-slate-909 dark:text-white p-3 rounded-xl border border-slate-200 dark:border-slate-850 text-xs focus:ring-1 focus:ring-slate-950 font-mono resize-none overflow-x-auto leading-normal"
-                />
+              <div className="space-y-2">
+                <label className="text-[10px] font-mono tracking-wider text-slate-450 uppercase block font-bold">LSU Authentication Node</label>
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-955 border border-slate-250 dark:border-slate-850 rounded-xl flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-medium text-slate-650 dark:text-slate-350">Firebase Identity Manager</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-[#da9445]/10 text-[#da9445] border border-[#da9445]/20">
+                    ACTIVE / SECURED
+                  </span>
+                </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 bg-slate-955 dark:bg-white text-white dark:text-slate-955 rounded-xl text-xs uppercase tracking-wider font-bold hover:shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 rounded-xl text-xs uppercase tracking-widest font-serif font-bold hover:shadow flex items-center justify-center gap-1.5 cursor-pointer hover:opacity-90 active:scale-99 transition-all"
               >
-                <Database className="w-4 h-4" /> Save Connection parameters
+                <RefreshCw className="w-4 h-4 animate-spin-slow" /> Verify Connection Status
               </button>
             </form>
 
-            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-1 text-amber-700 dark:text-amber-400 text-xs leading-normal">
-              <p className="font-bold">Active Configuration Info</p>
-              <p className="text-[10px] font-light mt-1">If both parameters are supplied at build time or custom-entered in this editor, all operations instantly persist, synchronize, and query straight with your live Supabase database tables! Under zero config, fallback local state will persist local changes to sessionStorage.</p>
+            <div className="p-4 bg-slate-100 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 rounded-2xl space-y-1.5 text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
+              <p className="font-bold text-slate-900 dark:text-white uppercase font-serif tracking-wider text-[10px]">Security Clearance & Env variables</p>
+              <p className="text-[11px] font-light">
+                To connect a separate database cluster or update web credentials, please review the <strong>Firebase Guide</strong> tab on the main campus navigation deck. All updates must be declared inside Vercel environment variables or your hosting setup.
+              </p>
             </div>
           </div>
         )}

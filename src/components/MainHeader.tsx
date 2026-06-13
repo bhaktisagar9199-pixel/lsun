@@ -37,6 +37,7 @@ export default function MainHeader({
     { label: 'Press releases', value: 'news' },
     { label: 'Campus Gallery', value: 'gallery' },
     { label: 'Verify Credentials', value: 'verification' },
+    { label: 'Firebase Guide', value: 'guide' },
     { label: 'Reach Out', value: 'contact' }
   ];
 
