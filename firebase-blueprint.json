@@ -1,20 +1,16 @@
 {
   "entities": {
-    "CMSContent": {
-      "title": "CMS Content Document",
-      "description": "Represents a single key-value segment of the CMS database state.",
+    "CMSCollectionContent": {
+      "title": "CMS Collection Content",
+      "description": "Represents content or items stored inside individual CMS collections.",
       "type": "object",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique key matching the CMS database state field name."
-        },
         "content": {
           "type": "object",
-          "description": "The raw JSON or list data content for this particular CMS segment."
+          "description": "The serialized JSON state content for this segment."
         }
       },
-      "required": ["id", "content"]
+      "required": ["content"]
     },
     "AdminUser": {
       "title": "Admin User",
@@ -34,9 +30,25 @@
     }
   },
   "firestore": {
-    "/cms_content/{contentId}": {
-      "schema": "CMSContent",
-      "description": "Dynamic web page and university settings cache."
+    "/courses/{id}": {
+      "schema": "CMSCollectionContent",
+      "description": "Course offerings and schedule metadata."
+    },
+    "/faculty/{id}": {
+      "schema": "CMSCollectionContent",
+      "description": "Faculty directory roster data."
+    },
+    "/news/{id}": {
+      "schema": "CMSCollectionContent",
+      "description": "University news updates and press archive."
+    },
+    "/gallery/{id}": {
+      "schema": "CMSCollectionContent",
+      "description": "Image database for campus galleries."
+    },
+    "/settings/{id}": {
+      "schema": "CMSCollectionContent",
+      "description": "Administrative preferences and localized section content configuration blocks."
     },
     "/admins/{adminId}": {
       "schema": "AdminUser",

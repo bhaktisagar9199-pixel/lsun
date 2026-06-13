@@ -109,6 +109,12 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (window.location.pathname === '/admin-dashboard' || window.location.hash === '#admin-dashboard')) {
+      setIsAdminMode(true);
+    }
+  }, []);
+
   const handleToggleDarkMode = () => {
     const targetDark = !darkMode;
     setDarkMode(targetDark);
@@ -123,11 +129,24 @@ export default function App() {
   const handleNavigatePage = (target: string) => {
     setActivePage(target);
     setIsAdminMode(false); // Clean exit of administrative view upon general routing
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', `/${target === 'home' ? '' : target}`);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleToggleAdminMode = () => {
-    setIsAdminMode((prev) => !prev);
+    setIsAdminMode((prev) => {
+      const nextMode = !prev;
+      if (typeof window !== 'undefined') {
+        if (nextMode) {
+          window.history.pushState(null, '', '/admin-dashboard');
+        } else {
+          window.history.pushState(null, '', '/');
+        }
+      }
+      return nextMode;
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -174,6 +193,9 @@ export default function App() {
       setLoginPassword('');
       setLoginError(null);
       setIsAdminMode(true);
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/admin-dashboard');
+      }
     } catch (err: any) {
       setLoginError(`Authentication failed: ${err?.message || err}`);
     }
@@ -220,6 +242,9 @@ export default function App() {
       sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON', JSON.stringify(loggedUser));
       setLoginError(null);
       setIsAdminMode(true);
+      if (typeof window !== 'undefined') {
+        window.history.pushState(null, '', '/admin-dashboard');
+      }
     } catch (err: any) {
       setLoginError(`Google Sign-In failed: ${err?.message || err}`);
     }
@@ -234,6 +259,9 @@ export default function App() {
     sessionStorage.removeItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON');
     setIsAdminMode(false);
     setActivePage('home');
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', '/');
+    }
   };
 
   // Render matching active page view

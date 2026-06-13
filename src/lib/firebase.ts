@@ -14,13 +14,12 @@ export function getEnv(name: string): any {
 }
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || getEnv('VITE_FIREBASE_API_KEY') || appletConfig.apiKey || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || getEnv('VITE_FIREBASE_AUTH_DOMAIN') || appletConfig.authDomain || '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || getEnv('VITE_FIREBASE_PROJECT_ID') || appletConfig.projectId || '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || getEnv('VITE_FIREBASE_STORAGE_BUCKET') || appletConfig.storageBucket || '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || getEnv('VITE_FIREBASE_MESSAGING_SENDER_ID') || appletConfig.messagingSenderId || '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || getEnv('VITE_FIREBASE_APP_ID') || appletConfig.appId || '',
-  firestoreDatabaseId: appletConfig.firestoreDatabaseId || ''
+  apiKey: appletConfig.apiKey || '',
+  authDomain: appletConfig.authDomain || '',
+  projectId: "ls-university",
+  storageBucket: appletConfig.storageBucket || '',
+  messagingSenderId: appletConfig.messagingSenderId || '',
+  appId: appletConfig.appId || ''
 };
 
 console.log("Firebase config loaded. Project ID:", firebaseConfig.projectId);
@@ -34,14 +33,15 @@ const app = initializeApp(
     : {
         apiKey: "placeholder",
         authDomain: "placeholder.firebaseapp.com",
-        projectId: "placeholder-project",
+        projectId: "ls-university",
         storageBucket: "placeholder.appspot.com",
         messagingSenderId: "12345678",
         appId: "1:12345:web:abcd"
       }
 );
 
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId || undefined);
+export const db = getFirestore(app);
+console.log("Connected to Firebase Firestore default database");
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -397,9 +397,24 @@ const getInitialCMSState = (): CMSDatabaseState => {
 const REALTIME_CHANNEL_NAME = 'LS_UNIVERSITY_CMS_REALTIME';
 const realtimeChannel = typeof window !== 'undefined' ? new BroadcastChannel(REALTIME_CHANNEL_NAME) : null;
 
+export function getDocRef(key: keyof CMSDatabaseState) {
+  if (key === 'courses') {
+    return doc(db, 'courses', 'data');
+  } else if (key === 'faculty') {
+    return doc(db, 'faculty', 'data');
+  } else if (key === 'news') {
+    return doc(db, 'news', 'data');
+  } else if (key === 'gallery') {
+    return doc(db, 'gallery', 'data');
+  } else {
+    return doc(db, 'settings', key);
+  }
+}
+
 class LiveCMSDatabase {
   private state: CMSDatabaseState;
   private listeners: Set<(state: CMSDatabaseState) => void> = new Set();
+  private sUnsubscribes: (() => void)[] = [];
   private unsubscribeFirestore: (() => void) | null = null;
 
   constructor() {
@@ -426,6 +441,13 @@ class LiveCMSDatabase {
   }
 
   public reinitializeFirebase() {
+    this.sUnsubscribes.forEach(unsub => {
+      try {
+        unsub();
+      } catch (e) {}
+    });
+    this.sUnsubscribes = [];
+
     if (this.unsubscribeFirestore) {
       try {
         this.unsubscribeFirestore();
@@ -434,7 +456,7 @@ class LiveCMSDatabase {
     }
 
     try {
-      console.log('Connecting and synchronizing in real-time with Firestore service containers...');
+      console.log('Connecting and synchronizing in real-time with Firestore default database collections...');
       this.setupRealtimeSubscription();
     } catch (e) {
       console.error('Failed to configure Firestore listeners:', e);
@@ -442,12 +464,111 @@ class LiveCMSDatabase {
   }
 
   private setupRealtimeSubscription() {
-    const colRef = collection(db, 'cms_content');
-    
-    this.unsubscribeFirestore = onSnapshot(colRef, (snapshot) => {
+    // 1. Courses
+    const coursesRef = doc(db, 'courses', 'data');
+    const unsubCourses = onSnapshot(coursesRef, async (snap) => {
+      if (!snap.exists()) {
+        console.log("courses/data is empty, seeding defaults...");
+        try {
+          await setDoc(coursesRef, { content: DEFAULT_COURSES });
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, 'courses/data');
+        }
+        return;
+      }
+      const data = snap.data();
+      if (data && data.content) {
+        this.state = { ...this.state, courses: data.content };
+        this.notifyListeners();
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'courses/data');
+    });
+    this.sUnsubscribes.push(unsubCourses);
+
+    // 2. Faculty
+    const facultyRef = doc(db, 'faculty', 'data');
+    const unsubFaculty = onSnapshot(facultyRef, async (snap) => {
+      if (!snap.exists()) {
+        console.log("faculty/data is empty, seeding defaults...");
+        try {
+          await setDoc(facultyRef, { content: DEFAULT_FACULTY });
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, 'faculty/data');
+        }
+        return;
+      }
+      const data = snap.data();
+      if (data && data.content) {
+        this.state = { ...this.state, faculty: data.content };
+        this.notifyListeners();
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'faculty/data');
+    });
+    this.sUnsubscribes.push(unsubFaculty);
+
+    // 3. News
+    const newsRef = doc(db, 'news', 'data');
+    const unsubNews = onSnapshot(newsRef, async (snap) => {
+      if (!snap.exists()) {
+        console.log("news/data is empty, seeding defaults...");
+        try {
+          await setDoc(newsRef, { content: DEFAULT_NEWS });
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, 'news/data');
+        }
+        return;
+      }
+      const data = snap.data();
+      if (data && data.content) {
+        this.state = { ...this.state, news: data.content };
+        this.notifyListeners();
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'news/data');
+    });
+    this.sUnsubscribes.push(unsubNews);
+
+    // 4. Gallery
+    const galleryRef = doc(db, 'gallery', 'data');
+    const unsubGallery = onSnapshot(galleryRef, async (snap) => {
+      if (!snap.exists()) {
+        console.log("gallery/data is empty, seeding defaults...");
+        try {
+          await setDoc(galleryRef, { content: DEFAULT_GALLERY });
+        } catch (e) {
+          handleFirestoreError(e, OperationType.WRITE, 'gallery/data');
+        }
+        return;
+      }
+      const data = snap.data();
+      if (data && data.content) {
+        this.state = { ...this.state, gallery: data.content };
+        this.notifyListeners();
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'gallery/data');
+    });
+    this.sUnsubscribes.push(unsubGallery);
+
+    // 5. Settings collection
+    const settingsColRef = collection(db, 'settings');
+    const unsubSettings = onSnapshot(settingsColRef, async (snapshot) => {
       if (snapshot.empty) {
-        console.log('Firestore cms_content is empty. Seeding initial data models... It is expected for first-time use.');
-        this.seedAllToFirestore();
+        console.log("settings collection is empty, seeding defaults...");
+        const keys: (keyof CMSDatabaseState)[] = [
+          'homepage', 'stats', 'testimonials', 'aboutPage', 'timeline', 
+          'admissions', 'events', 'placements', 'recruiters', 
+          'certificates', 'contactDetails', 'footerSettings', 'seoSettings'
+        ];
+        for (const key of keys) {
+          try {
+            await setDoc(doc(db, 'settings', key), { content: this.state[key] });
+          } catch (e) {
+            handleFirestoreError(e, OperationType.WRITE, `settings/${key}`);
+          }
+        }
         return;
       }
 
@@ -464,12 +585,11 @@ class LiveCMSDatabase {
         ...this.state,
         ...loadedState
       };
-
       this.notifyListeners();
-      console.log('Synchronized state dynamically with Firestore in real-time!');
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'cms_content');
+      handleFirestoreError(error, OperationType.GET, 'settings');
     });
+    this.sUnsubscribes.push(unsubSettings);
   }
 
   public async seedAllToFirestore() {
@@ -478,8 +598,8 @@ class LiveCMSDatabase {
       const keys = Object.keys(this.state) as Array<keyof CMSDatabaseState>;
       for (const key of keys) {
         if (key === 'users') continue; // Do not seed dummy users to public configs
-        const value = this.state[key];
-        await setDoc(doc(db, 'cms_content', key), { content: value });
+        const docRef = getDocRef(key);
+        await setDoc(docRef, { content: this.state[key] });
       }
       console.log('Firestore university CMS records initialized successfully!');
     } catch (e) {
@@ -503,10 +623,11 @@ class LiveCMSDatabase {
       Object.entries(newState).forEach(async ([key, val]) => {
         if (key === 'users') return; // Local profile references
         try {
-          await setDoc(doc(db, 'cms_content', key), { content: val });
+          const docRef = getDocRef(key as keyof CMSDatabaseState);
+          await setDoc(docRef, { content: val });
         } catch (e) {
           console.error(`Failed to sync CMS component ${key} to Firestore:`, e);
-          handleFirestoreError(e, OperationType.WRITE, `cms_content/${key}`);
+          handleFirestoreError(e, OperationType.WRITE, `settings/${key}`);
         }
       });
     }
