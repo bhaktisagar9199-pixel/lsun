@@ -6,13 +6,26 @@
 import { createClient } from '@supabase/supabase-js';
 import { CMSDatabaseState, HomePageData, AboutPageData, Course, FacultyMember, NewsArticle, CampusEvent, GalleryItem, PlacementHighlight, Recruiter, Certificate, ContactDetails, FooterSettings, SEOSettings, UserProfile, UniversityStat, Testimonial, TimelineMilestone, AdmissionsPageData } from '../types';
 
+export function getEnv(name: string): any {
+  return import.meta.env[name];
+}
+
+console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
+console.log("VITE_SUPABASE_ANON_KEY =", !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  getEnv('VITE_SUPABASE_URL') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
+  '';
 
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  getEnv('VITE_SUPABASE_ANON_KEY') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') ||
+  '';
 
 console.log('Supabase Loaded URL (Database):', supabaseUrl);
 console.log('Supabase Loaded Anon Key Status (Database):', supabaseAnonKey ? 'Available' : 'Missing');
@@ -32,9 +45,10 @@ let { url: activeUrl, anonKey: activeKey } = getSupabaseCredentials();
 
 export const isSupabaseConfigured = activeUrl !== '' && activeKey !== '';
 
-export let supabase = isSupabaseConfigured
-  ? createClient(activeUrl, activeKey)
-  : null;
+export let supabase = createClient(
+  activeUrl || 'https://placeholder-please-configure.supabase.co',
+  activeKey || 'placeholder'
+);
 
 // Premium initial seed data for LS University
 const DEFAULT_HOMEPAGE_DATA: HomePageData = {

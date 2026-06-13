@@ -4,17 +4,26 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig } from './lib/supabase';
+import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig, getEnv } from './lib/supabase';
 import { CMSDatabaseState, UserProfile } from './types';
 import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight } from 'lucide-react';
 
+console.log("VITE_SUPABASE_URL =", import.meta.env.VITE_SUPABASE_URL);
+console.log("VITE_SUPABASE_ANON_KEY =", !!import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL;
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  getEnv('VITE_SUPABASE_URL') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_URL') ||
+  '';
 
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  getEnv('VITE_SUPABASE_ANON_KEY') ||
+  getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') ||
+  '';
 
 console.log('Supabase Loaded URL (Auth Login):', supabaseUrl);
 console.log('Supabase Loaded Anon Key Status:', supabaseAnonKey ? 'Available' : 'Missing');
@@ -140,8 +149,8 @@ export default function App() {
     e.preventDefault();
     setLoginError(null);
 
-    if (!supabase) {
-      setLoginError('Supabase is not configured. Please supply parameters or define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your env configuration.');
+    if (!isSupabaseConfigured) {
+      setLoginError('Supabase is not configured. Please define VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your env configuration.');
       return;
     }
 
@@ -213,17 +222,8 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Error Box / Configuration Blocker */}
-              {!supabase ? (
-                <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-xs space-y-2 leading-normal">
-                  <div className="font-bold flex items-center gap-1.5 font-sans uppercase tracking-wider text-[10px] text-red-650 dark:text-red-400">
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" /> Supabase Connection Blocked
-                  </div>
-                  <p className="font-light text-slate-650 dark:text-slate-350">
-                    The Supabase credentials are missing or not defined at runtime. Please configure <code className="font-mono bg-red-500/10 px-1 py-0.5 rounded text-red-700 dark:text-red-350">VITE_SUPABASE_URL</code> and <code className="font-mono bg-red-500/10 px-1 py-0.5 rounded text-red-700 dark:text-red-350">VITE_SUPABASE_ANON_KEY</code> to enable CMS authentication.
-                  </p>
-                </div>
-              ) : loginError ? (
+              {/* Error Box */}
+              {loginError ? (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-xl text-xs font-semibold flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 shrink-0" />
                   <span>{loginError}</span>
@@ -239,14 +239,13 @@ export default function App() {
                   <input
                     type="email"
                     required
-                    disabled={!supabase}
                     placeholder="operator@lsu.edu"
                     value={loginEmail}
                     onChange={(e) => {
                       setLoginEmail(e.target.value);
                       setLoginError(null);
                     }}
-                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white px-4 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium"
                   />
                 </div>
 
@@ -258,20 +257,18 @@ export default function App() {
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      disabled={!supabase}
                       placeholder="••••••••••••"
                       value={loginPassword}
                       onChange={(e) => {
                         setLoginPassword(e.target.value);
                         setLoginError(null);
                       }}
-                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white pl-4 pr-11 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-slate-50 dark:bg-slate-955 border border-slate-200 dark:border-slate-850 text-slate-900 dark:text-white pl-4 pr-11 py-2.5 rounded-xl text-xs focus:ring-1 focus:ring-[#da9445] focus:outline-none font-mono font-medium"
                     />
                     <button
                       type="button"
-                      disabled={!supabase}
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-250 cursor-pointer disabled:opacity-50"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-250 cursor-pointer"
                       title={showPassword ? 'Hide passcode' : 'Show passcode'}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -282,8 +279,7 @@ export default function App() {
                 <div className="pt-2 space-y-2">
                   <button
                     type="submit"
-                    disabled={!supabase}
-                    className="w-full py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-serif font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-99 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full py-3 bg-slate-950 dark:bg-white text-white dark:text-slate-950 font-serif font-bold text-xs uppercase tracking-widest rounded-xl hover:opacity-90 flex items-center justify-center gap-2 cursor-pointer shadow-lg active:scale-99 transition-all"
                   >
                     Authenticate Session <ArrowRight className="w-4 h-4" />
                   </button>
