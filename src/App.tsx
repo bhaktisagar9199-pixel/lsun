@@ -8,8 +8,8 @@ import { liveDb, supabase, isSupabaseConfigured, updateSupabaseConfig } from './
 import { CMSDatabaseState, UserProfile } from './types';
 import { Lock, Eye, EyeOff, ShieldAlert, ArrowRight, Landmark, Key } from 'lucide-react';
 
-const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL;
-const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 console.log('Supabase Loaded URL (Auth Login):', supabaseUrl);
 
@@ -143,7 +143,22 @@ export default function App() {
     setLoginError(null);
 
     if (!supabase) {
-      setLoginError('Supabase coordinates are not configured. Please supply parameters or define VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in your env configuration.');
+      const emailLower = loginEmail.trim().toLowerCase();
+      const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === emailLower);
+      if (matchedUser) {
+        const loggedUser: UserProfile = {
+          ...matchedUser,
+          fullName: matchedUser.fullName || 'Super Admin Creator'
+        };
+        setAuthenticatedUser(loggedUser);
+        sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_ID', loggedUser.id);
+        sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON', JSON.stringify(loggedUser));
+        setLoginPassword('');
+        setLoginError(null);
+        setIsAdminMode(true);
+      } else {
+        setLoginError('User email not recognized in local offline database. Enter "bhaktisagar9199@gmail.com" to log in locally.');
+      }
       return;
     }
 
@@ -177,6 +192,22 @@ export default function App() {
       }
     } catch (err: any) {
       setLoginError(`System error during operator sign-in: ${err?.message || err}`);
+    }
+  };
+
+  const handleLaunchLocalDemo = () => {
+    const matchedUser = cmsState.users.find(u => u.email.toLowerCase() === 'bhaktisagar9199@gmail.com') || cmsState.users[0];
+    if (matchedUser) {
+      const loggedUser: UserProfile = {
+        ...matchedUser,
+        fullName: matchedUser.fullName || 'Super Admin Creator'
+      };
+      setAuthenticatedUser(loggedUser);
+      sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_ID', loggedUser.id);
+      sessionStorage.setItem('LS_UNIVERSITY_ADMIN_SESSION_USER_JSON', JSON.stringify(loggedUser));
+      setLoginPassword('');
+      setLoginError(null);
+      setIsAdminMode(true);
     }
   };
 
@@ -224,6 +255,30 @@ export default function App() {
                 </div>
               )}
 
+              {/* Fallback Banner for Offline Storage CMS Simulator */}
+              {!supabase && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-xs space-y-2 text-amber-700 dark:text-amber-300 leading-normal animate-fade-in">
+                  <p className="font-bold flex items-center gap-1.5 font-sans uppercase tracking-wider text-[10px]">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" /> Local CMS Simulator Mode
+                  </p>
+                  <p className="font-light">
+                    No active Supabase configuration detected. We have auto-enabled the <strong>Local Storage CMS Simulator</strong> so you can safely create, update, and manage courses, news, and faculty in your browser state.
+                  </p>
+                  <div className="pt-1 select-none">
+                    <button
+                      type="button"
+                      onClick={handleLaunchLocalDemo}
+                      className="w-full py-2 bg-amber-550 dark:bg-amber-650 hover:opacity-90 text-white font-mono font-bold text-[10px] uppercase tracking-wider rounded-lg transition-opacity cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                    >
+                      <Key className="w-3.5 h-3.5" /> Initialize Super Admin Session
+                    </button>
+                    <p className="text-[9px] text-amber-600 dark:text-amber-400 text-center font-light mt-1.5 leading-tight">
+                      Credentials: <code className="font-mono bg-amber-500/10 dark:bg-amber-500/20 px-1 py-0.5 rounded text-amber-800 dark:text-amber-200">bhaktisagar9199@gmail.com</code>
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Form Section */}
               <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
                 <div className="space-y-1">
@@ -250,8 +305,8 @@ export default function App() {
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="••••••••••••"
+                      required={!!supabase}
+                      placeholder={supabase ? "••••••••••••" : "Any passcode (Offline Simulation)"}
                       value={loginPassword}
                       onChange={(e) => {
                         setLoginPassword(e.target.value);
@@ -281,7 +336,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => handleNavigatePage('home')}
-                    className="w-full py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-950 dark:hover:bg-slate-900 border border-slate-150 dark:border-slate-850 text-slate-650 dark:text-slate-350 font-sans font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer block text-center"
+                    className="w-full py-3 bg-slate-50 hover:bg-slate-100 dark:bg-slate-955 dark:hover:bg-slate-900 border border-slate-150 dark:border-slate-850 text-slate-650 dark:text-slate-350 font-sans font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer block text-center"
                   >
                     Return to Public Campus
                   </button>
